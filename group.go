@@ -1,4 +1,4 @@
-package group
+package soundcloud
 
 //Group SoundCloud Group field
 type Group struct {

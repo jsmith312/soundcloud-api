@@ -7,11 +7,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
-	"github.com/go-soundcloud-api/group"
-	"github.com/go-soundcloud-api/track"
-	"github.com/go-soundcloud-api/user"
 	"github.com/pquerna/ffjson/ffjson"
 )
 
@@ -59,7 +57,7 @@ func NewClient(clientID, clientSecret, username, password string) *Client {
 }
 
 //GetUser gets the user info
-func (c Client) GetUser(user *user.User) {
+func (c Client) GetUser(user *User) {
 	t := time.Now()
 	baseURL := fmt.Sprintf(baseAPIURL, "me?")
 	params := url.Values{}
@@ -84,8 +82,9 @@ func streamToByte(stream io.Reader) []byte {
 }
 
 //GetUserGroups gets a list of the user's groups
-func (c Client) GetUserGroups(groups *[]group.Group) {
+func (c Client) GetUserGroups(wg *sync.WaitGroup, groups *[]Group) {
 	t := time.Now()
+	defer wg.Done()
 	baseURL := fmt.Sprintf(baseAPIURL, "me/groups?")
 	params := url.Values{}
 	params.Add("limit", "75")
@@ -103,8 +102,9 @@ func (c Client) GetUserGroups(groups *[]group.Group) {
 }
 
 //GetTracks gets the user's tracks
-func (c Client) GetTracks(tracks *[]track.Track) {
+func (c Client) GetTracks(wg *sync.WaitGroup, tracks *[]Track) {
 	t := time.Now()
+	defer wg.Done()
 	baseURL := fmt.Sprintf(baseAPIURL, "me/tracks?")
 	params := url.Values{}
 	params.Add("oauth_token", c.authToken.AccessToken)
@@ -122,13 +122,13 @@ func (c Client) GetTracks(tracks *[]track.Track) {
 
 //AddToGroup adds track to gorup
 func (c Client) AddToGroup(groupID, trackID int) (int, error) {
-	responseCode, err := groupReq(groupID, trackID, "PUT", c.authToken.AccessToken)
+	responseCode, err := groupReq(groupID, trackID, http.MethodPut, c.authToken.AccessToken)
 	return responseCode, err
 }
 
 //RemoveFromGroup Remove track from a Group
 func (c Client) RemoveFromGroup(groupID, trackID int) (int, error) {
-	responseCode, err := groupReq(groupID, trackID, "DELETE", c.authToken.AccessToken)
+	responseCode, err := groupReq(groupID, trackID, http.MethodDelete, c.authToken.AccessToken)
 	return responseCode, err
 }
 

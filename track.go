@@ -1,4 +1,4 @@
-package track
+package soundcloud
 
 //Track structure
 type Track struct {

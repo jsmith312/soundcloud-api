@@ -1,4 +1,4 @@
-package user
+package soundcloud
 
 //User SoundCloud user field when calling /user
 type User struct {
