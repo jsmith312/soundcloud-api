@@ -82,9 +82,8 @@ func streamToByte(stream io.Reader) []byte {
 }
 
 //GetUserGroups gets a list of the user's groups
-func (c Client) GetUserGroups(wg *sync.WaitGroup, groups *[]Group) {
+func (c Client) GetUserGroups(groups *[]Group) {
 	t := time.Now()
-	defer wg.Done()
 	baseURL := fmt.Sprintf(baseAPIURL, "me/groups?")
 	params := url.Values{}
 	params.Add("limit", "75")
@@ -124,6 +123,28 @@ func (c Client) GetTracks(wg *sync.WaitGroup, tracks *[]Track) {
 func (c Client) AddToGroup(groupID, trackID int) (int, error) {
 	responseCode, err := groupReq(groupID, trackID, http.MethodPut, c.authToken.AccessToken)
 	return responseCode, err
+}
+
+//GetNewGroups gets a new set of groups to upload to
+func (c Client) GetNewGroups(query string, groups *[]Group) {
+	t := time.Now()
+	baseURL := fmt.Sprintf(baseAPIURL, "groups?")
+	params := url.Values{}
+	params.Add("limit", "75")
+	params.Add("q", query)
+	params.Add("client_id", c.clientID)
+	finalURL := baseURL + params.Encode()
+	log.Println(finalURL)
+	response, err := http.Get(finalURL)
+	if err != nil {
+		log.Fatal("Error in grabbing user info", err)
+		return
+	}
+	defer response.Body.Close()
+	decoder := ffjson.NewDecoder()
+	decoder.Decode(streamToByte(response.Body), &groups)
+	log.Println(response.StatusCode)
+	log.Printf("Retrieved Tracks in:%s\n", time.Since(t))
 }
 
 //RemoveFromGroup Remove track from a Group
