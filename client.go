@@ -126,25 +126,26 @@ func (c Client) AddToGroup(groupID, trackID int) (int, error) {
 }
 
 //GetNewGroups gets a new set of groups to upload to
-func (c Client) GetNewGroups(query string, groups *[]Group) {
+func (c Client) GetNewGroups(query string, groups *[]Group) []byte {
 	t := time.Now()
 	baseURL := fmt.Sprintf(baseAPIURL, "groups?")
 	params := url.Values{}
-	params.Add("limit", "75")
 	params.Add("q", query)
+	params.Add("limit", "75")
 	params.Add("client_id", c.clientID)
 	finalURL := baseURL + params.Encode()
 	log.Println(finalURL)
 	response, err := http.Get(finalURL)
 	if err != nil {
 		log.Fatal("Error in grabbing user info", err)
-		return
+		return nil
 	}
 	defer response.Body.Close()
 	decoder := ffjson.NewDecoder()
 	decoder.Decode(streamToByte(response.Body), &groups)
 	log.Println(response.StatusCode)
 	log.Printf("Retrieved Tracks in:%s\n", time.Since(t))
+	return streamToByte(response.Body)
 }
 
 //RemoveFromGroup Remove track from a Group
