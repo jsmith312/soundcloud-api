@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	"github.com/pquerna/ffjson/ffjson"
@@ -101,9 +100,8 @@ func (c Client) GetUserGroups(groups *[]Group) {
 }
 
 //GetTracks gets the user's tracks
-func (c Client) GetTracks(wg *sync.WaitGroup, tracks *[]Track) {
+func (c Client) GetTracks(tracks *[]Track) []byte {
 	t := time.Now()
-	defer wg.Done()
 	baseURL := fmt.Sprintf(baseAPIURL, "me/tracks?")
 	params := url.Values{}
 	params.Add("oauth_token", c.authToken.AccessToken)
@@ -111,12 +109,13 @@ func (c Client) GetTracks(wg *sync.WaitGroup, tracks *[]Track) {
 	response, err := http.Get(finalURL)
 	if err != nil {
 		log.Fatal("Error in grabbing user info", err)
-		return
+		return nil
 	}
 	defer response.Body.Close()
 	decoder := ffjson.NewDecoder()
 	decoder.Decode(streamToByte(response.Body), &tracks)
 	log.Printf("Retrieved Tracks in:%s\n", time.Since(t))
+	return streamToByte(response.Body)
 }
 
 //AddToGroup adds track to gorup
