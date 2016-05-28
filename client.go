@@ -31,6 +31,15 @@ type Client struct {
 	authToken                                  auth
 }
 
+//InitClient init client with authtoken
+func InitClient(username, authtoken string) *Client {
+	c := &Client{}
+	c.authToken.AccessToken = authtoken
+	c.username = username
+	fmt.Printf("%s: %s", c.username, c.authToken.AccessToken)
+	return c
+}
+
 //NewClient initialized a new client
 func NewClient(clientID, clientSecret, username, password string) *Client {
 	baseURL := fmt.Sprintf(baseAPIURL, "oauth2/token?")
@@ -81,7 +90,7 @@ func streamToByte(stream io.Reader) []byte {
 }
 
 //GetUserGroups gets a list of the user's groups
-func (c Client) GetUserGroups(groups *[]Group) {
+func (c Client) GetUserGroups(groups *[]Group) []byte {
 	t := time.Now()
 	baseURL := fmt.Sprintf(baseAPIURL, "me/groups?")
 	params := url.Values{}
@@ -91,12 +100,14 @@ func (c Client) GetUserGroups(groups *[]Group) {
 	response, err := http.Get(finalURL)
 	if err != nil {
 		log.Fatal("Error in grabbing user groups", err)
-		return
+		return nil
 	}
 	defer response.Body.Close()
 	decoder := ffjson.NewDecoder()
-	decoder.Decode(streamToByte(response.Body), &groups)
+	var respInBytes = streamToByte(response.Body)
+	decoder.Decode(respInBytes, &groups)
 	log.Printf("Retrieved Groups in:%s\n", time.Since(t))
+	return respInBytes
 }
 
 //GetTracks gets the user's tracks
@@ -113,15 +124,10 @@ func (c Client) GetTracks(tracks *[]Track) []byte {
 	}
 	defer response.Body.Close()
 	decoder := ffjson.NewDecoder()
-	decoder.Decode(streamToByte(response.Body), &tracks)
+	var respInBytes = streamToByte(response.Body)
+	decoder.Decode(respInBytes, &tracks)
 	log.Printf("Retrieved Tracks in:%s\n", time.Since(t))
-	return streamToByte(response.Body)
-}
-
-//AddToGroup adds track to gorup
-func (c Client) AddToGroup(groupID, trackID int) (int, error) {
-	responseCode, err := groupReq(groupID, trackID, http.MethodPut, c.authToken.AccessToken)
-	return responseCode, err
+	return respInBytes
 }
 
 //GetNewGroups gets a new set of groups to upload to
@@ -141,10 +147,17 @@ func (c Client) GetNewGroups(query string, groups *[]Group) []byte {
 	}
 	defer response.Body.Close()
 	decoder := ffjson.NewDecoder()
-	decoder.Decode(streamToByte(response.Body), &groups)
+	var respInBytes = streamToByte(response.Body)
+	decoder.Decode(respInBytes, &groups)
 	log.Println(response.StatusCode)
 	log.Printf("Retrieved Tracks in:%s\n", time.Since(t))
-	return streamToByte(response.Body)
+	return respInBytes
+}
+
+//AddToGroup adds track to gorup
+func (c Client) AddToGroup(groupID, trackID int) (int, error) {
+	responseCode, err := groupReq(groupID, trackID, http.MethodPut, c.authToken.AccessToken)
+	return responseCode, err
 }
 
 //RemoveFromGroup Remove track from a Group
@@ -167,4 +180,9 @@ func groupReq(groupID, trackID int, httpMethod, accessToken string) (int, error)
 	}
 	response, err := http.DefaultClient.Do(req)
 	return response.StatusCode, err
+}
+
+//GetClientName returns the given client user name
+func (c Client) GetClientName() string {
+	return c.username
 }
